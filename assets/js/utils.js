@@ -10,3 +10,10 @@ export const SVGElement = (link, className) => {
 	svg.appendChild(use);
 	return svg;
 };
+
+export const toMinSec = duration => {
+	const min = Math.floor(duration / 60);
+	const sec = Math.floor(duration % 60);
+
+	return `${min < 10 ? `0${min}` : min}:${sec < 10 ? `0${sec}` : sec}`;
+};
