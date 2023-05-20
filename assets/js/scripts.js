@@ -5,6 +5,7 @@ const AudioController = {
 	state: {
 		audioList: [],
 		current: {},
+		playing: false,
 	},
 	init() {
 		this.initVariables();
@@ -12,6 +13,7 @@ const AudioController = {
 		this.initEvents();
 	},
 	initVariables() {
+		this.playButton = null;
 		this.audioList = document.querySelector('.items');
 		this.currentItem = document.querySelector('.current');
 	},
@@ -20,18 +22,89 @@ const AudioController = {
 	},
 
 	setCurrentItem(itemId) {
+		this.pauseCurrentAudio();
 		const current = this.state.audioList.find(item => item.id === Number(itemId));
 		if (!current) return;
 		this.state.current = current;
 		const currentItem = this.renderCurrentItem();
 		this.currentItem.innerHTML = '';
 		this.currentItem.append(...currentItem);
+		this.audioUpdateHandler(current);
+		this.handlePlayer();
 	},
 
 	handleItemClick({ target }) {
 		const { id } = target.dataset;
 		if (!id) return;
 		this.setCurrentItem(id);
+	},
+
+	handlePlayer() {
+		const play = document.querySelector('.controls-play');
+		const next = document.querySelector('.controls-next');
+		const prev = document.querySelector('.controls-prev');
+		this.playButton = play;
+
+		play.addEventListener('click', this.handleAudioPlay.bind(this));
+		next.addEventListener('click', this.handleAudioNext.bind(this));
+		prev.addEventListener('click', this.handleAudioPrev.bind(this));
+	},
+
+	handleAudioPlay() {
+		const {
+			current: { audio },
+			playing,
+		} = this.state;
+
+		!playing ? audio.play() : audio.pause();
+		this.state.playing = !playing;
+		this.playButton.classList.toggle('playing', !playing);
+	},
+
+	handleAudioNext() {
+		const {
+			current: { id },
+		} = this.state;
+
+		const currentItem = document.querySelector(`[data-id="${id}"]`);
+		const next = currentItem.nextSibling?.dataset;
+		const first = this.audioList.firstChild?.dataset;
+
+		const itemId = next?.id || first?.id;
+		if (!itemId) return;
+
+		this.setCurrentItem(itemId);
+	},
+
+	handleAudioPrev() {
+		const {
+			current: { id },
+		} = this.state;
+
+		const currentItem = document.querySelector(`[data-id="${id}"]`);
+		const prev = currentItem.previousSibling?.dataset;
+		const last = this.audioList.lastChild?.dataset;
+
+		const itemId = prev?.id || last?.id;
+		if (!itemId) return;
+
+		this.setCurrentItem(itemId);
+	},
+
+	audioUpdateHandler({ audio, duration }) {
+		const progress = document.querySelector('.progress-current');
+		const timeline = document.querySelector('.timeline-start');
+
+		audio.addEventListener('timeupdate', ({ target: { currentTime } }) => {
+			const width = (currentTime / duration) * 100;
+			timeline.textContent = toMinSec(currentTime);
+			progress.style.width = `${width}%`;
+		});
+	},
+
+	pauseCurrentAudio() {
+		this.state.current.audio.pause();
+		this.state.playing = false;
 	},
 
 	renderAudioItem(audio) {
